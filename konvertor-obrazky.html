@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konvertor obrázků → JPG</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f5f4f0;
+    color: #1a1a18;
+    min-height: 100vh;
+    padding: 2.5rem 1rem;
+  }
+
+  #app {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 600;
+    margin-bottom: .3rem;
+  }
+
+  .sub {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 2rem;
+  }
+
+  #dropzone {
+    border: 2px dashed #bbb;
+    border-radius: 14px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: background .2s, border-color .2s;
+    background: #fff;
+  }
+
+  #dropzone:hover, #dropzone.over {
+    background: #eef6ff;
+    border-color: #4a90d9;
+  }
+
+  #dropzone svg { display: block; margin: 0 auto 1rem; color: #aaa; }
+  #dropzone p { font-size: 15px; color: #555; }
+  #dropzone span { font-size: 13px; color: #aaa; display: block; margin-top: .4rem; }
+  #fileInput { display: none; }
+
+  .controls {
+    display: flex;
+    gap: 2rem;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid #e5e5e2;
+  }
+
+  .ctrl-group { flex: 1; min-width: 180px; }
+  .ctrl-group label { font-size: 13px; font-weight: 500; color: #555; display: block; margin-bottom: 8px; }
+  .ctrl-group input[type=range] { width: 100%; accent-color: #2d7dd2; }
+  .val { font-weight: 600; color: #1a1a18; font-variant-numeric: tabular-nums; }
+
+  #results { display: flex; flex-direction: column; gap: 10px; margin-top: 1.5rem; }
+
+  .file-card {
+    background: #fff;
+    border: 1px solid #e5e5e2;
+    border-radius: 12px;
+    padding: .85rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #f0f0ec;
+    flex-shrink: 0;
+  }
+
+  .info { flex: 1; min-width: 0; }
+  .fname { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sizes { font-size: 12px; color: #888; margin-top: 3px; }
+  .ok { color: #2a7a3a; font-weight: 500; }
+  .warn { color: #b45309; font-weight: 500; }
+
+  .dl-btn {
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s;
+    text-decoration: none;
+    color: #1a1a18;
+    display: inline-block;
+  }
+  .dl-btn:hover { background: #f5f4f0; }
+
+  .dl-all {
+    margin-top: .5rem;
+    width: 100%;
+    padding: 11px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid #bbb;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .dl-all:hover { background: #f0f0ec; }
+
+  .progress-wrap {
+    height: 4px;
+    background: #e5e5e2;
+    border-radius: 4px;
+    margin-top: 1.25rem;
+    overflow: hidden;
+    display: none;
+  }
+  .progress-bar {
+    height: 100%;
+    background: #2d7dd2;
+    width: 0%;
+    transition: width .3s;
+  }
+
+  .status {
+    text-align: center;
+    font-size: 14px;
+    color: #888;
+    padding: 1rem;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>Konvertor obrázků → JPG</h1>
+  <p class="sub">Převede PNG, WebP, GIF, BMP a další formáty na JPG. Vše probíhá lokálně v prohlížeči — žádný upload.</p>
+
+  <div id="dropzone" onclick="document.getElementById('fileInput').click()">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    <p>Přetáhněte sem obrázky nebo klikněte pro výběr</p>
+    <span>PNG · WebP · GIF · BMP · TIFF · JPEG</span>
+  </div>
+  <input type="file" id="fileInput" multiple accept="image/*">
+
+  <div class="controls">
+    <div class="ctrl-group">
+      <label>Maximální velikost: <span class="val" id="sizeLabel">150 KB</span></label>
+      <input type="range" id="maxSize" min="20" max="500" step="10" value="150">
+    </div>
+    <div class="ctrl-group">
+      <label>Počáteční kvalita: <span class="val" id="qualLabel">85 %</span></label>
+      <input type="range" id="initQual" min="10" max="100" step="5" value="85">
+    </div>
+  </div>
+
+  <div class="progress-wrap" id="progWrap">
+    <div class="progress-bar" id="progBar"></div>
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const dropzone  = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const results   = document.getElementById('results');
+const maxSizeEl = document.getElementById('maxSize');
+const initQualEl= document.getElementById('initQual');
+const sizeLabel = document.getElementById('sizeLabel');
+const qualLabel = document.getElementById('qualLabel');
+const progWrap  = document.getElementById('progWrap');
+const progBar   = document.getElementById('progBar');
+
+let convertedFiles = [];
+
+maxSizeEl.oninput  = () => sizeLabel.textContent = maxSizeEl.value + ' KB';
+initQualEl.oninput = () => qualLabel.textContent = initQualEl.value + ' %';
+
+dropzone.addEventListener('dragover',  e => { e.preventDefault(); dropzone.classList.add('over'); });
+dropzone.addEventListener('dragleave', ()  => dropzone.classList.remove('over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('over');
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+async function handleFiles(files) {
+  const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!arr.length) return;
+
+  convertedFiles = [];
+  results.innerHTML = '<div class="status">Zpracovávám…</div>';
+  progWrap.style.display = 'block';
+  progBar.style.width = '0%';
+
+  for (let i = 0; i < arr.length; i++) {
+    progBar.style.width = Math.round((i / arr.length) * 100) + '%';
+    await convertFile(arr[i]);
+  }
+
+  progBar.style.width = '100%';
+  setTimeout(() => progWrap.style.display = 'none', 700);
+
+  if (convertedFiles.length > 1) {
+    const btn = document.createElement('button');
+    btn.className = 'dl-all';
+    btn.id = 'dlAllBtn';
+    btn.textContent = '⬇ Stáhnout vše jako ZIP (' + convertedFiles.length + ' souborů)';
+    btn.onclick = downloadZip;
+    results.appendChild(btn);
+  }
+}
+
+function convertFile(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const maxKB   = parseInt(maxSizeEl.value);
+        let quality   = parseInt(initQualEl.value) / 100;
+
+        const canvas  = document.createElement('canvas');
+        canvas.width  = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+
+        let dataUrl, sizeKB, iter = 0;
+
+        const compress = () => {
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+          // přesný výpočet velikosti base64 → bajty
+          const b64 = dataUrl.split(',')[1];
+          const padding = (b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0);
+          sizeKB = Math.round((b64.length * 3/4 - padding) / 1024);
+
+          if (sizeKB <= maxKB || quality <= 0.05 || iter > 30) {
+            addCard(file, dataUrl, sizeKB, quality);
+            resolve();
+          } else {
+            quality = Math.max(0.05, quality - 0.04);
+            iter++;
+            setTimeout(compress, 0);
+          }
+        };
+        compress();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function addCard(file, dataUrl, sizeKB, quality) {
+  const origKB   = Math.round(file.size / 1024);
+  const baseName = file.name.replace(/\.[^.]+$/, '');
+  const newName  = baseName + '.jpg';
+  const maxKB    = parseInt(maxSizeEl.value);
+  const inLimit  = sizeKB <= maxKB;
+
+  if (results.querySelector('.status')) results.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'file-card';
+
+  const thumb = document.createElement('img');
+  thumb.className = 'thumb';
+  thumb.src = dataUrl;
+
+  const info = document.createElement('div');
+  info.className = 'info';
+  info.innerHTML =
+    `<div class="fname">${newName}</div>` +
+    `<div class="sizes">
+       ${origKB} KB → <span class="${inLimit ? 'ok' : 'warn'}">${sizeKB} KB</span>
+       &nbsp;·&nbsp; kvalita ${Math.round(quality * 100)}&nbsp;%
+       &nbsp;·&nbsp; <span class="${inLimit ? 'ok' : 'warn'}">${inLimit ? '✓ v limitu' : '⚠ překračuje limit'}</span>
+     </div>`;
+
+  const a = document.createElement('a');
+  a.className = 'dl-btn';
+  a.href = dataUrl;
+  a.download = newName;
+  a.textContent = '⬇ Stáhnout';
+
+  card.appendChild(thumb);
+  card.appendChild(info);
+  card.appendChild(a);
+  results.appendChild(card);
+
+  convertedFiles.push({ dataUrl, name: newName });
+}
+
+async function downloadZip() {
+  const btn = document.getElementById('dlAllBtn');
+  btn.textContent = '⏳ Připravuji ZIP…';
+  btn.disabled = true;
+
+  const zip = new JSZip();
+  for (const f of convertedFiles) {
+    const b64 = f.dataUrl.split(',')[1];
+    zip.file(f.name, b64, { base64: true });
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'obrazky_jpg.zip';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  btn.textContent = '✓ ZIP stažen (' + convertedFiles.length + ' souborů)';
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
