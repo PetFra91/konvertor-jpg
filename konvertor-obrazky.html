@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Konvertor obrázků → JPG</title>
+<title>Konvertor obrázků</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -15,22 +15,10 @@
     padding: 2.5rem 1rem;
   }
 
-  #app {
-    max-width: 700px;
-    margin: 0 auto;
-  }
+  #app { max-width: 700px; margin: 0 auto; }
 
-  h1 {
-    font-size: 26px;
-    font-weight: 600;
-    margin-bottom: .3rem;
-  }
-
-  .sub {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 2rem;
-  }
+  h1 { font-size: 26px; font-weight: 600; margin-bottom: .3rem; }
+  .sub { font-size: 14px; color: #666; margin-bottom: 2rem; }
 
   #dropzone {
     border: 2px dashed #bbb;
@@ -41,12 +29,7 @@
     transition: background .2s, border-color .2s;
     background: #fff;
   }
-
-  #dropzone:hover, #dropzone.over {
-    background: #eef6ff;
-    border-color: #4a90d9;
-  }
-
+  #dropzone:hover, #dropzone.over { background: #eef6ff; border-color: #4a90d9; }
   #dropzone svg { display: block; margin: 0 auto 1rem; color: #aaa; }
   #dropzone p { font-size: 15px; color: #555; }
   #dropzone span { font-size: 13px; color: #aaa; display: block; margin-top: .4rem; }
@@ -54,7 +37,7 @@
 
   .controls {
     display: flex;
-    gap: 2rem;
+    gap: 1.5rem 2rem;
     margin: 1.5rem 0;
     flex-wrap: wrap;
     background: #fff;
@@ -64,9 +47,33 @@
   }
 
   .ctrl-group { flex: 1; min-width: 180px; }
-  .ctrl-group label { font-size: 13px; font-weight: 500; color: #555; display: block; margin-bottom: 8px; }
+  .ctrl-group.full { flex-basis: 100%; }
+  .ctrl-group > label, .ctrl-title { font-size: 13px; font-weight: 500; color: #555; display: block; margin-bottom: 8px; }
   .ctrl-group input[type=range] { width: 100%; accent-color: #2d7dd2; }
+  .ctrl-group.disabled { opacity: .45; pointer-events: none; }
   .val { font-weight: 600; color: #1a1a18; font-variant-numeric: tabular-nums; }
+  .hint { font-size: 12px; color: #999; margin-top: 6px; }
+
+  /* Přepínač formátu */
+  .seg { display: inline-flex; border: 1px solid #ccc; border-radius: 10px; overflow: hidden; }
+  .seg input { display: none; }
+  .seg label {
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    background: #fff;
+    color: #444;
+    border-right: 1px solid #ccc;
+    transition: background .15s, color .15s;
+    user-select: none;
+  }
+  .seg label:last-of-type { border-right: none; }
+  .seg input:checked + label { background: #2d7dd2; color: #fff; }
+  .seg input:disabled + label { opacity: .4; cursor: not-allowed; }
+
+  .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; cursor: pointer; }
+  .check input { accent-color: #2d7dd2; width: 16px; height: 16px; }
 
   #results { display: flex; flex-direction: column; gap: 10px; margin-top: 1.5rem; }
 
@@ -81,19 +88,20 @@
   }
 
   .thumb {
-    width: 52px;
-    height: 52px;
+    width: 52px; height: 52px;
     border-radius: 8px;
     object-fit: cover;
-    background: #f0f0ec;
     flex-shrink: 0;
+    background:
+      repeating-conic-gradient(#e8e8e4 0% 25%, #fff 0% 50%) 50% / 12px 12px;
   }
 
   .info { flex: 1; min-width: 0; }
   .fname { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sizes { font-size: 12px; color: #888; margin-top: 3px; }
+  .sizes { font-size: 12px; color: #888; margin-top: 3px; line-height: 1.5; }
   .ok { color: #2a7a3a; font-weight: 500; }
   .warn { color: #b45309; font-weight: 500; }
+  .err { color: #b91c1c; font-weight: 500; }
 
   .dl-btn {
     padding: 7px 14px;
@@ -133,25 +141,15 @@
     overflow: hidden;
     display: none;
   }
-  .progress-bar {
-    height: 100%;
-    background: #2d7dd2;
-    width: 0%;
-    transition: width .3s;
-  }
+  .progress-bar { height: 100%; background: #2d7dd2; width: 0%; transition: width .3s; }
 
-  .status {
-    text-align: center;
-    font-size: 14px;
-    color: #888;
-    padding: 1rem;
-  }
+  .status { text-align: center; font-size: 14px; color: #888; padding: 1rem; }
 </style>
 </head>
 <body>
 <div id="app">
-  <h1>Konvertor obrázků → JPG</h1>
-  <p class="sub">Převede PNG, WebP, GIF, BMP a další formáty na JPG. Vše probíhá lokálně v prohlížeči — žádný upload.</p>
+  <h1>Konvertor obrázků</h1>
+  <p class="sub">Převede obrázky do JPG, WebP nebo PNG s limitem velikosti. Vše probíhá lokálně v prohlížeči — žádný upload.</p>
 
   <div id="dropzone" onclick="document.getElementById('fileInput').click()">
     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -160,18 +158,35 @@
       <line x1="12" y1="3" x2="12" y2="15"/>
     </svg>
     <p>Přetáhněte sem obrázky nebo klikněte pro výběr</p>
-    <span>PNG · WebP · GIF · BMP · TIFF · JPEG</span>
+    <span>PNG · WebP · GIF · BMP · AVIF · JPEG</span>
   </div>
   <input type="file" id="fileInput" multiple accept="image/*">
 
   <div class="controls">
+    <div class="ctrl-group full">
+      <span class="ctrl-title">Výstupní formát</span>
+      <div class="seg" id="formatSeg">
+        <input type="radio" name="fmt" id="fmt-jpg"  value="jpg" checked><label for="fmt-jpg">JPG</label>
+        <input type="radio" name="fmt" id="fmt-webp" value="webp"><label for="fmt-webp">WebP</label>
+        <input type="radio" name="fmt" id="fmt-png"  value="png"><label for="fmt-png">PNG</label>
+      </div>
+      <div class="hint" id="fmtHint"></div>
+    </div>
+
     <div class="ctrl-group">
       <label>Maximální velikost: <span class="val" id="sizeLabel">150 KB</span></label>
-      <input type="range" id="maxSize" min="20" max="500" step="10" value="150">
+      <input type="range" id="maxSize" min="20" max="1000" step="10" value="150">
     </div>
-    <div class="ctrl-group">
+    <div class="ctrl-group" id="qualGroup">
       <label>Počáteční kvalita: <span class="val" id="qualLabel">85 %</span></label>
       <input type="range" id="initQual" min="10" max="100" step="5" value="85">
+    </div>
+
+    <div class="ctrl-group full">
+      <label class="check">
+        <input type="checkbox" id="allowResize">
+        Zmenšit rozměry, pokud se nevejde do limitu ani při minimální kvalitě
+      </label>
     </div>
   </div>
 
@@ -184,20 +199,58 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
-const dropzone  = document.getElementById('dropzone');
-const fileInput = document.getElementById('fileInput');
-const results   = document.getElementById('results');
-const maxSizeEl = document.getElementById('maxSize');
-const initQualEl= document.getElementById('initQual');
-const sizeLabel = document.getElementById('sizeLabel');
-const qualLabel = document.getElementById('qualLabel');
-const progWrap  = document.getElementById('progWrap');
-const progBar   = document.getElementById('progBar');
+const FORMATS = {
+  jpg:  { mime: 'image/jpeg', ext: 'jpg',  lossy: true,  alpha: false,
+          hint: 'Ztrátový formát, bez průhlednosti (průhledné plochy se vyplní bílou).' },
+  webp: { mime: 'image/webp', ext: 'webp', lossy: true,  alpha: true,
+          hint: 'Ztrátový formát s podporou průhlednosti, obvykle menší než JPG.' },
+  png:  { mime: 'image/png',  ext: 'png',  lossy: false, alpha: true,
+          hint: 'Bezztrátový formát — kvalitu nelze nastavit. Limit lze splnit jen zmenšením rozměrů.' }
+};
+
+const MIN_Q = 0.05;
+
+const dropzone    = document.getElementById('dropzone');
+const fileInput   = document.getElementById('fileInput');
+const results     = document.getElementById('results');
+const maxSizeEl   = document.getElementById('maxSize');
+const initQualEl  = document.getElementById('initQual');
+const sizeLabel   = document.getElementById('sizeLabel');
+const qualLabel   = document.getElementById('qualLabel');
+const qualGroup   = document.getElementById('qualGroup');
+const fmtHint     = document.getElementById('fmtHint');
+const allowResize = document.getElementById('allowResize');
+const progWrap    = document.getElementById('progWrap');
+const progBar     = document.getElementById('progBar');
 
 let convertedFiles = [];
+let objectUrls = [];
 
 maxSizeEl.oninput  = () => sizeLabel.textContent = maxSizeEl.value + ' KB';
 initQualEl.oninput = () => qualLabel.textContent = initQualEl.value + ' %';
+
+function currentFormat() {
+  return FORMATS[document.querySelector('input[name=fmt]:checked').value];
+}
+
+function updateFormatUI() {
+  const f = currentFormat();
+  fmtHint.textContent = f.hint;
+  qualGroup.classList.toggle('disabled', !f.lossy);
+}
+document.querySelectorAll('input[name=fmt]').forEach(r => r.addEventListener('change', updateFormatUI));
+
+// Detekce podpory WebP enkódování (starší Safari neumí)
+(function checkWebp() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 1;
+  if (!c.toDataURL('image/webp').startsWith('data:image/webp')) {
+    const r = document.getElementById('fmt-webp');
+    r.disabled = true;
+    r.nextElementSibling.title = 'Tento prohlížeč neumí ukládat WebP';
+  }
+})();
+updateFormatUI();
 
 dropzone.addEventListener('dragover',  e => { e.preventDefault(); dropzone.classList.add('over'); });
 dropzone.addEventListener('dragleave', ()  => dropzone.classList.remove('over'));
@@ -206,20 +259,35 @@ dropzone.addEventListener('drop', e => {
   dropzone.classList.remove('over');
   handleFiles(e.dataTransfer.files);
 });
-fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
 
 async function handleFiles(files) {
   const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
   if (!arr.length) return;
 
+  objectUrls.forEach(u => URL.revokeObjectURL(u));
+  objectUrls = [];
   convertedFiles = [];
+
+  const fmt = currentFormat();
+  const opts = {
+    fmt,
+    maxBytes: parseInt(maxSizeEl.value) * 1024,
+    initQ: parseInt(initQualEl.value) / 100,
+    resize: allowResize.checked
+  };
+
   results.innerHTML = '<div class="status">Zpracovávám…</div>';
   progWrap.style.display = 'block';
   progBar.style.width = '0%';
 
   for (let i = 0; i < arr.length; i++) {
     progBar.style.width = Math.round((i / arr.length) * 100) + '%';
-    await convertFile(arr[i]);
+    try {
+      await convertFile(arr[i], opts);
+    } catch (err) {
+      addErrorCard(arr[i], err);
+    }
   }
 
   progBar.style.width = '100%';
@@ -230,114 +298,182 @@ async function handleFiles(files) {
     btn.className = 'dl-all';
     btn.id = 'dlAllBtn';
     btn.textContent = '⬇ Stáhnout vše jako ZIP (' + convertedFiles.length + ' souborů)';
-    btn.onclick = downloadZip;
+    btn.onclick = () => downloadZip(fmt.ext);
     results.appendChild(btn);
   }
 }
 
-function convertFile(file) {
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        const maxKB   = parseInt(maxSizeEl.value);
-        let quality   = parseInt(initQualEl.value) / 100;
-
-        const canvas  = document.createElement('canvas');
-        canvas.width  = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-
-        let dataUrl, sizeKB, iter = 0;
-
-        const compress = () => {
-          dataUrl = canvas.toDataURL('image/jpeg', quality);
-          // přesný výpočet velikosti base64 → bajty
-          const b64 = dataUrl.split(',')[1];
-          const padding = (b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0);
-          sizeKB = Math.round((b64.length * 3/4 - padding) / 1024);
-
-          if (sizeKB <= maxKB || quality <= 0.05 || iter > 30) {
-            addCard(file, dataUrl, sizeKB, quality);
-            resolve();
-          } else {
-            quality = Math.max(0.05, quality - 0.04);
-            iter++;
-            setTimeout(compress, 0);
-          }
-        };
-        compress();
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload  = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Prohlížeč neumí tento formát načíst')); };
+    img.src = url;
   });
 }
 
-function addCard(file, dataUrl, sizeKB, quality) {
-  const origKB   = Math.round(file.size / 1024);
-  const baseName = file.name.replace(/\.[^.]+$/, '');
-  const newName  = baseName + '.jpg';
-  const maxKB    = parseInt(maxSizeEl.value);
-  const inLimit  = sizeKB <= maxKB;
+function drawToCanvas(img, scale, fmt) {
+  const canvas = document.createElement('canvas');
+  canvas.width  = Math.max(1, Math.round(img.naturalWidth  * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext('2d');
+  if (!fmt.alpha) {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
 
+function encode(canvas, fmt, q) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(b => b ? resolve(b) : reject(new Error('Enkódování selhalo')),
+                  fmt.mime, fmt.lossy ? q : undefined);
+  });
+}
+
+// Pro ztrátové formáty: nejvyšší kvalita ≤ initQ, která se vejde do limitu (binární hledání)
+async function fitQuality(canvas, fmt, initQ, maxBytes) {
+  let blob = await encode(canvas, fmt, initQ);
+  if (blob.size <= maxBytes) return { blob, q: initQ, fits: true };
+
+  let lo = MIN_Q, hi = initQ, best = null;
+  const minBlob = await encode(canvas, fmt, lo);
+  if (minBlob.size > maxBytes) return { blob: minBlob, q: lo, fits: false };
+  best = { blob: minBlob, q: lo };
+
+  for (let i = 0; i < 7; i++) {
+    const mid = (lo + hi) / 2;
+    const b = await encode(canvas, fmt, mid);
+    if (b.size <= maxBytes) { best = { blob: b, q: mid }; lo = mid; }
+    else hi = mid;
+  }
+  return { ...best, fits: true };
+}
+
+async function convertFile(file, { fmt, maxBytes, initQ, resize }) {
+  const img = await loadImage(file);
+  let scale = 1;
+  let result;
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const canvas = drawToCanvas(img, scale, fmt);
+
+    if (fmt.lossy) {
+      result = await fitQuality(canvas, fmt, initQ, maxBytes);
+    } else {
+      const blob = await encode(canvas, fmt);
+      result = { blob, q: null, fits: blob.size <= maxBytes };
+    }
+    result.w = canvas.width;
+    result.h = canvas.height;
+
+    if (result.fits || !resize) break;
+
+    // odhad nového měřítka (velikost ~ plocha), s rezervou
+    const ratio = Math.sqrt(maxBytes / result.blob.size) * 0.92;
+    scale *= Math.min(0.9, ratio);
+    if (canvas.width * Math.min(0.9, ratio) < 16) break;
+  }
+
+  addCard(file, result, fmt, img, maxBytes);
+}
+
+function addCard(file, res, fmt, img, maxBytes) {
   if (results.querySelector('.status')) results.innerHTML = '';
+
+  const url = URL.createObjectURL(res.blob);
+  objectUrls.push(url);
+
+  const origKB  = Math.round(file.size / 1024);
+  const sizeKB  = Math.round(res.blob.size / 1024);
+  const newName = file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext;
+  const inLimit = res.blob.size <= maxBytes;
+  const resized = res.w !== img.naturalWidth;
 
   const card = document.createElement('div');
   card.className = 'file-card';
 
   const thumb = document.createElement('img');
   thumb.className = 'thumb';
-  thumb.src = dataUrl;
+  thumb.src = url;
 
   const info = document.createElement('div');
   info.className = 'info';
-  info.innerHTML =
-    `<div class="fname">${newName}</div>` +
-    `<div class="sizes">
-       ${origKB} KB → <span class="${inLimit ? 'ok' : 'warn'}">${sizeKB} KB</span>
-       &nbsp;·&nbsp; kvalita ${Math.round(quality * 100)}&nbsp;%
-       &nbsp;·&nbsp; <span class="${inLimit ? 'ok' : 'warn'}">${inLimit ? '✓ v limitu' : '⚠ překračuje limit'}</span>
-     </div>`;
+
+  const fname = document.createElement('div');
+  fname.className = 'fname';
+  fname.textContent = newName;
+
+  const parts = [
+    `${origKB} KB → <span class="${inLimit ? 'ok' : 'warn'}">${sizeKB} KB</span>`,
+    res.q !== null ? `kvalita ${Math.round(res.q * 100)}&nbsp;%` : 'bezztrátově',
+    resized
+      ? `<span class="warn">${img.naturalWidth}×${img.naturalHeight} → ${res.w}×${res.h}&nbsp;px</span>`
+      : `${res.w}×${res.h}&nbsp;px`,
+    `<span class="${inLimit ? 'ok' : 'warn'}">${inLimit ? '✓ v limitu' : '⚠ překračuje limit'}</span>`
+  ];
+  const sizes = document.createElement('div');
+  sizes.className = 'sizes';
+  sizes.innerHTML = parts.join(' &nbsp;·&nbsp; ');
+
+  info.append(fname, sizes);
 
   const a = document.createElement('a');
   a.className = 'dl-btn';
-  a.href = dataUrl;
+  a.href = url;
   a.download = newName;
   a.textContent = '⬇ Stáhnout';
 
-  card.appendChild(thumb);
-  card.appendChild(info);
-  card.appendChild(a);
+  card.append(thumb, info, a);
   results.appendChild(card);
 
-  convertedFiles.push({ dataUrl, name: newName });
+  convertedFiles.push({ blob: res.blob, name: newName });
 }
 
-async function downloadZip() {
+function addErrorCard(file, err) {
+  if (results.querySelector('.status')) results.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'file-card';
+  const info = document.createElement('div');
+  info.className = 'info';
+  const fname = document.createElement('div');
+  fname.className = 'fname';
+  fname.textContent = file.name;
+  const msg = document.createElement('div');
+  msg.className = 'sizes err';
+  msg.textContent = '✕ ' + (err && err.message ? err.message : 'Chyba při převodu');
+  info.append(fname, msg);
+  card.appendChild(info);
+  results.appendChild(card);
+}
+
+async function downloadZip(ext) {
   const btn = document.getElementById('dlAllBtn');
   btn.textContent = '⏳ Připravuji ZIP…';
   btn.disabled = true;
 
   const zip = new JSZip();
+  const used = new Set();
   for (const f of convertedFiles) {
-    const b64 = f.dataUrl.split(',')[1];
-    zip.file(f.name, b64, { base64: true });
+    let name = f.name, n = 1;
+    while (used.has(name)) name = f.name.replace(/(\.[^.]+)$/, `_${n++}$1`);
+    used.add(name);
+    zip.file(name, f.blob);
   }
 
-  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  // obrázky jsou už komprimované, DEFLATE by jen zdržoval
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'obrazky_jpg.zip';
+  a.download = `obrazky_${ext}.zip`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 
   btn.textContent = '✓ ZIP stažen (' + convertedFiles.length + ' souborů)';
   btn.disabled = false;
